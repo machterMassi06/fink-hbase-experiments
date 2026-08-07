@@ -27,8 +27,19 @@ def init_sparksession(
     """
     # Grab the running Spark Session,
     # otherwise create it.
-    spark = SparkSession.builder.appName(name).getOrCreate()
-
+    spark = (
+        SparkSession.builder
+        .appName(name)
+        .config(
+            "spark.hadoop.hbase.zookeeper.quorum",
+            "hadoop-hbase-cluster"
+        )
+        .config(
+            "spark.hadoop.hbase.zookeeper.property.clientPort",
+            "2181"
+        )
+        .getOrCreate()
+    )
     # keep the size of shuffles small
     if shuffle_partitions is not None:
         spark.conf.set("spark.sql.shuffle.partitions", shuffle_partitions)

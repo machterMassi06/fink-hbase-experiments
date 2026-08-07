@@ -6,12 +6,11 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.utils import AnalysisException
 
-from fink_science.ztf.xmatch.utils import MANGROVE_COLS
-from fink_science.ztf.blazar_low_state.processor import (
-    BLAZAR_LOW_COLS,
-    BLAZAR_HIGH_COLS,
-    CDF_COL,
-)
+BLAZAR_LOW_COLS = ["instantness_low", "robustness_low"]
+BLAZAR_HIGH_COLS = ["instantness_high", "robustness_high"]
+CDF_COL = ["cdf_quantile"]
+
+MANGROVE_COLS = ["HyperLEDA_name", "2MASS_name", "lum_dist", "ang_dist"]
 BLAZAR_COLS = BLAZAR_LOW_COLS + BLAZAR_HIGH_COLS + CDF_COL
 
 _LOG = logging.getLogger(__name__)
@@ -653,15 +652,8 @@ def push_to_hbase(
         Dictionnary containing column names with column family
     nregion: int, optional
         Number of region to create if the table is newly created. Default is 50.
-    catfolder: str
-        Folder to write catalogs (must exist). Default is current directory.
-    streaming: bool
-        If True, ingest data in real-time assuming df is a
-        streaming DataFrame. Default is False (static DataFrame).
-    checkpoint_path: str
-        Path to the checkpoint for streaming. Only relevant if `streaming=True`
-    write_catalogs: bool
-        If True, write catalogs (json) on disk. Default is False
+    bulk_loading : boolean, optional 
+        True : Bulk loading, False : classic load 
 
 
     """
@@ -722,6 +714,5 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         table_name=table_name,
         rowkeyname=row_key_name,
         cf=cf,
-        catfolder=catalog_name,
-        bulk_loading=bulk_loading,
+        bulk_loading=bulk_loading
     )
