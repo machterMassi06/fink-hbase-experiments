@@ -1,0 +1,78 @@
+services:
+
+  hadoop-hbase-cluster:
+    image: massmach/hadoop-hbase-cluster:latest
+    container_name: hadoop-hbase-cluster
+    ports:
+      - "9870:9870"   # HDFS NameNode UI
+      - "8088:8088"   # YARN ResourceManager UI
+      - "16010:16010" # HBase Master UI
+
+      - "9404:9404"   # HBase RegionServer JMX Exporter
+      - "9405:9405"   # HBase Master JMX Exporter
+    volumes:
+      - .:/workspace # mount the project code into /workspace
+  
+  spark-master:
+    build:
+      context: . 
+      dockerfile: Dockerfile.spark
+    container_name: spark-master
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+      --host spark-master
+      --port 7077
+      --webui-port 8080
+    ports:
+      - "7077:7077"
+      - "8080:8080" # Spark master UI 
+    environment:
+      HOME: /tmp
+    volumes:
+      - ./spark/:/workspace
+      - ./mapreduce/:/workspace/mapreduce
+  spark-worker:
+    build:
+      context: . 
+      dockerfile: Dockerfile.spark
+    container_name: spark-worker
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    ports:
+      - "8081:8081"
+    environment:
+      HOME: /tmp
+    volumes:
+      - ./spark/:/workspace
+    depends_on:
+      - spark-master
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - hadoop-hbase-cluster
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    user: "472:472"
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:
