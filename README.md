@@ -44,8 +44,11 @@ Upload the dataset to HDFS:
 ```bash
 hdfs dfs -put /root/data_test_2026_08_06/* /archive/science/year=2026/month=08/day=06/
 ```
-
+--- 
 ## RUN CLASSIC LOAD WITH 
+
+inside `spark-master` container, run the following command : 
+
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py \
     hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
@@ -53,3 +56,11 @@ hdfs dfs -put /root/data_test_2026_08_06/* /archive/science/year=2026/month=08/d
     ztf_main_table \
     ztf_main_table_catalog
 ```
+
+---
+
+## TODO
+
+* Implement the bulk loading script (see `hbase_mapreduce_project` my repo git).
+* Compare the bulk loading approach with the classic loading method.
+* probably take a large dataset from fink (> 2G)
