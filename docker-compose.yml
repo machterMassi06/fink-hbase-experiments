@@ -29,8 +29,7 @@ services:
     environment:
       HOME: /tmp
     volumes:
-      - ./spark/:/workspace
-      - ./mapreduce/:/workspace/mapreduce
+      - .:/workspace
   spark-worker:
     build:
       context: . 
@@ -44,7 +43,7 @@ services:
     environment:
       HOME: /tmp
     volumes:
-      - ./spark/:/workspace
+      - .:/workspace
     depends_on:
       - spark-master
 
