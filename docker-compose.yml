@@ -12,6 +12,7 @@ services:
       - "9405:9405"   # HBase Master JMX Exporter
     volumes:
       - .:/workspace # mount the project code into /workspace
+      - hadoop-data:/root/hdfs
   
   spark-master:
     build:
@@ -75,3 +76,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  hadoop-data:
