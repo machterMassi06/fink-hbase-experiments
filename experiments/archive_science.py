@@ -34,7 +34,7 @@ def main():
 
     # Initialise Spark session
     spark = init_sparksession(
-        name="science_archival_{}".format(args.tyoe), shuffle_partitions=2
+        name="science_archival_{}".format(args.type), shuffle_partitions=2
     )
 
     # Row key
