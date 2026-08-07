@@ -14,12 +14,6 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 RUN mkdir -p /opt/spark/jars/hbase
 
 
-COPY hbase-libs/\
-     /opt/spark/jars/hbase/
-    
-COPY hbase-libs/ \
-     /opt/spark/jars/hbase/
-
 ADD https://raw.githubusercontent.com/machterMassi06/hbase-mapreduce-learning-project/main/hbase-libs/hbase-client-2.5.8-hadoop3.jar \
     /opt/spark/jars/hbase/
 
@@ -31,7 +25,7 @@ ADD https://raw.githubusercontent.com/machterMassi06/hbase-mapreduce-learning-pr
 
 ADD https://raw.githubusercontent.com/machterMassi06/hbase-mapreduce-learning-project/main/hbase-libs/hbase-mapreduce-2.5.8-hadoop3.jar \
     /opt/spark/jars/hbase/
-    
+
 ADD https://raw.githubusercontent.com/astrolabsoftware/fink-broker/master/libs/hbase-spark-hbase2.5.8_spark3.4.3_scala2.12.0_hadoop3.3.6.jar \
     /opt/spark/jars/hbase/
 
