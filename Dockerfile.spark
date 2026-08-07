@@ -2,17 +2,23 @@ FROM apache/spark:3.4.3
 
 USER root
 
-
 RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk maven && \
+    apt-get install -y openjdk-11-jdk maven python3-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-RUN mkdir -p /opt/spark/jars/hbase
+# Install Python dependencies
+COPY requirements.txt /workspace/requirements.txt
 
+RUN pip3 install --no-cache-dir -r /workspace/requirements.txt
+
+# Make local Python packages available
+ENV PYTHONPATH=/workspace:$PYTHONPATH
+
+RUN mkdir -p /opt/spark/jars/hbase
 
 ADD https://raw.githubusercontent.com/machterMassi06/hbase-mapreduce-learning-project/main/hbase-libs/hbase-client-2.5.8-hadoop3.jar \
     /opt/spark/jars/hbase/

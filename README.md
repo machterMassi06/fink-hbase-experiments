@@ -45,4 +45,11 @@ Upload the dataset to HDFS:
 hdfs dfs -put /root/data_test_2026_08_06/* /archive/science/year=2026/month=08/day=06/
 ```
 
-
+## RUN CLASSIC LOAD WITH 
+```bash 
+/workspace/run_spark.sh /workspace/experiments/archive_science.py \
+    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
+    classic_load \
+    ztf_main_table \
+    ztf_main_table_catalog
+```
