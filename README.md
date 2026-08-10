@@ -20,7 +20,7 @@ sudo docker compose up -d
 From the host machine, copy the test dataset into the Hadoop/HBase container:
 
 ```bash
-sudo docker cp ./data_test_2026_08_06 hadoop-hbase-cluster:/root/
+sudo docker cp ./ztf_data_test hadoop-hbase-cluster:/root/
 ```
 
 Verify that the dataset is available inside the container:
@@ -34,16 +34,29 @@ ls /root/
 Load the dataset into HDFS, Inside the Hadoop container, create the target HDFS directory, for example:
 
 ```bash
-hdfs dfs -mkdir -p /archive/science/year=2026/month=08/day=06
+hdfs dfs -mkdir -p /archive/science/year=2026/month=08
 ## set replication factor to 1 
-hdfs dfs -setrep -w 1 /archive/science/year=2026/month=08/day=06
+hdfs dfs -setrep -w 1 /archive/science/year=2026/month=08
 ```
 
 Upload the dataset to HDFS:
 
 ```bash
-hdfs dfs -put /root/data_test_2026_08_06/* /archive/science/year=2026/month=08/day=06/
+hdfs dfs -put /root/ztf_data_test/* /archive/science/year=2026/month=08/
 ```
+
+Verify that ~ 4G of data that loaded with sucess in hdfs : 
+
+```bash
+hdfs dfs -du -h /archive/science/year=2026/ 
+```
+
+Output : 
+
+```text
+3.9 G  3.9 G  /archive/science/year=2026/month=08
+``` 
+
 --- 
 ## RUN CLASSIC LOAD WITH 
 
@@ -51,7 +64,7 @@ inside `spark-master` container, run the following command :
 
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py \
-    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
+    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/ \
     classic \
     ztf_main_table \
     ztf_main_table_catalog
@@ -59,11 +72,9 @@ inside `spark-master` container, run the following command :
 
 ## RUN BULK LOADING
 
->> see todo section (fix rowkey uniqueness)
-
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py\
-    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
+    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/ \
     bulk_load \
     ztf_main_table \
     ztf_main_table_catalog \
@@ -74,4 +85,5 @@ inside `spark-master` container, run the following command :
 ## TODO
 
 * By definition, ThinBulkLoad does not accept two records with the same row key; it requires a unique row key for every record. we need to find a solution for this (for example, by defining a unique row key instead of "objectId_jd," which is not unique) -> FIXED 
-* probably take a large dataset from fink (> 2G)
+* probably take a large dataset from fink (> 4G)
+
