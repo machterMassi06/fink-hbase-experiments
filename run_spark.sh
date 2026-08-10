@@ -12,7 +12,11 @@ shift
 
 LIB_DIR=/opt/spark/jars/hbase
 
-PROJECT_JARS="$LIB_DIR/hbase-spark-hbase2.5.8_spark3.4.3_scala2.12.0_hadoop3.3.6.jar,\
+PROJECT_JARS="$LIB_DIR/hbase-server-2.5.8-hadoop3.jar,\
+$LIB_DIR/hbase-client-2.5.8-hadoop3.jar,\
+$LIB_DIR/hbase-common-2.5.8-hadoop3.jar,\
+$LIB_DIR/hbase-mapreduce-2.5.8-hadoop3.jar,\
+$LIB_DIR/hbase-spark-hbase2.5.8_spark3.4.3_scala2.12.0_hadoop3.3.6.jar,\
 $LIB_DIR/hbase-spark-protocol-shaded-hbase2.5.8_spark3.4.3_scala2.12.0_hadoop3.3.6.jar,\
 /workspace/hbase/target/hbase-1.0-SNAPSHOT.jar"
 
