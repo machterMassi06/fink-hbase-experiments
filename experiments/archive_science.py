@@ -1,6 +1,6 @@
 import argparse
 
-from fink_broker_utils.spark_utils import init_sparksession, load_parquet_files
+from fink_broker_utils.spark_utils import init_sparksession, load_parquet_files, list_hdfs_files
 from fink_broker_utils.hbase_utils import push_full_df_to_hbase
 
 
@@ -65,7 +65,8 @@ def main():
 
     print("Processing {}".format(args.folder))
 
-    df = load_parquet_files(args.folder)
+    paths = list_hdfs_files(args.folder)
+    df = load_parquet_files(paths)
     n_alerts = df.count()
 
     # Drop unused partitioning columns

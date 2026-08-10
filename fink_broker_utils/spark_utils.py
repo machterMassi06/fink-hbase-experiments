@@ -75,3 +75,41 @@ def load_parquet_files(path: str) -> DataFrame:
     df = spark.read.format("parquet").option("mergeSchema", "true").load(path)
 
     return df
+
+def list_hdfs_files(hdfs_path):
+    """List files on an HDFS folder with full path
+
+    Parameters
+    ----------
+    hdfs_path: str
+        Folder name on HDFS containing files
+
+    Returns
+    -------
+    paths: list of str
+        List of filenames with full path
+    """
+    spark = SparkSession.builder.getOrCreate()
+
+    jvm = spark._jvm
+    conf = spark._jsc.hadoopConfiguration()
+
+    Path = jvm.org.apache.hadoop.fs.Path
+
+    root = Path(hdfs_path)
+    fs = root.getFileSystem(conf)
+
+    paths = []
+
+    def walk(path):
+        for status in fs.listStatus(path):
+            current = status.getPath()
+
+            if status.isFile():
+                paths.append(current.toString())
+            elif status.isDirectory():
+                walk(current)
+
+    walk(root)
+
+    return paths
