@@ -85,7 +85,7 @@ def main():
         table_name=args.science_db_name,
         catalog_name=args.science_db_catalogs,
         bulk_loading=(args.type == "bulk_load"),
-        sc=spark.SparkContext,
+        sc=spark.sparkContext,
         output_path=args.output_path
     )
 
