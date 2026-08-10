@@ -84,10 +84,12 @@ def main():
         row_key_name=row_key_name,
         table_name=args.science_db_name,
         catalog_name=args.science_db_catalogs,
-        bulk_loading=False,
+        bulk_loading=(args.type == "bulk_load"),
         sc=spark.SparkContext,
         output_path=args.output_path
     )
+
+    
     print("{} alerts pushed to HBase".format(n_alerts))
 
 
