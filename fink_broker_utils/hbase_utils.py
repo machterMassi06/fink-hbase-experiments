@@ -629,6 +629,125 @@ def push_to_hbase_partial(hbase_catalog, newtable):
 
     return inwrap
 
+def convert_catalog_for_java(hbase_catalog):
+
+    # Convert catalog Python dict to Java Map
+
+    java_columns = jvm.java.util.HashMap()
+
+
+    for col_name, meta in columns.items():
+
+        java_meta = jvm.java.util.HashMap()
+
+        java_meta.put(
+            "cf",
+            meta["cf"]
+        )
+
+        java_meta.put(
+            "col",
+            meta["col"]
+        )
+
+        java_meta.put(
+            "type",
+            meta.get("type", "string")
+        )
+
+        java_columns.put(
+            col_name,
+            java_meta
+        )
+
+def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
+    """
+    Perform a bulk load of Spark DataFrame data into HBase.
+
+    This function follows the official HBase Spark integration workflow:
+        1. Generate HFiles from the DataFrame using the hbaseBulkLoadThinRows Java wrapper.
+        2. Load the generated HFiles into HBase using LoadIncrementalHFiles.
+
+    Args:
+        sc (SparkSession): Current Spark session.
+        df (DataFrame): Spark DataFrame containing the data to load into HBase.
+        table_name (str): Name of the target HBase table. The table must
+            already exist.
+        hbase_catalog (str): HBase catalog configuration as a string.
+        output_path (str): HDFS or local path where the generated HFiles
+            will be stored.
+
+    Returns:
+        None
+    """
+
+    jvm = sc._jvm
+
+    # Java classes
+    TableName = jvm.org.apache.hadoop.hbase.TableName
+
+    # HFiles must be sorted by rowkey
+    # ThinBulkLoad handles the required sorting internally
+    # 1 - Avoid global orderBy() as it triggers an expensive shuffle
+    # df = df.orderBy("key")
+    # OR  2- Using repartition(n, "key") to control parallelism and HFile generation
+    # df = df.repartition(n_partitions, "key")
+    print(hbase_catalog)
+    
+    java_columns = convert_catalog_for_java(hbase_catalog)
+
+    # Initialize HBase context
+    hbase_conf = sc._jsc.hadoopConfiguration()
+    hbase_context = jvm.org.apache.hadoop.hbase.spark.HBaseContext(sc._jsc.sc(), hbase_conf, None)
+
+    # Call my Java wrapper
+
+    wrapper = (
+        jvm.hbase.ThinBulkLoadWrapper
+    )
+    # Execute Thin Bulk Load (generate HFiles in "thin")
+    wrapper.bulkLoadThinRows(
+        hbase_context,
+        df._jdf,
+        java_columns,
+        table_name,
+
+        # Temporary directory where HFiles will be generated (staging area before loading into HBase)
+        output_path,
+
+        # HFile write options per column family (compression,bloom filters, block size, etc.)
+        # Empty HashMap = default HBase settings
+        jvm.java.util.HashMap(),
+
+        # compactionExclude flag: True  -> HFiles are excluded from compactions , False -> normal HBase compaction behavior
+        False,
+
+        # Maximum HFile size in bytes (here: 256 MB)
+        256 * 1024 * 1024
+    )
+
+
+    # Load generated HFiles into HBase
+
+    connection_factory = jvm.org.apache.hadoop.hbase.client.ConnectionFactory
+    conn = connection_factory.createConnection(hbase_conf)
+
+    admin = conn.getAdmin()
+
+    if not admin.tableExists(TableName.valueOf(table_name)):
+        raise ValueError(f"Table {table_name} does not exist in HBase!")
+
+    table = conn.getTable(TableName.valueOf(table_name))
+    region_locator = conn.getRegionLocator(TableName.valueOf(table_name))
+
+    load = jvm.org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles(hbase_conf)
+
+    load.doBulkLoad(
+        jvm.org.apache.hadoop.fs.Path(output_path),
+        admin,
+        table,
+        region_locator
+    )
 
 def push_to_hbase(
     df,
@@ -636,7 +755,9 @@ def push_to_hbase(
     rowkeyname,
     cf,
     nregion=50,
-    bulk_loading=False
+    bulk_loading=False,
+    sc=None,
+    output_path=None
 ):
     """Push DataFrame data to HBase
 
@@ -654,6 +775,10 @@ def push_to_hbase(
         Number of region to create if the table is newly created. Default is 50.
     bulk_loading : boolean, optional 
         True : Bulk loading, False : classic load 
+    sc : SparkSession, optional
+        current spark session
+    output_path : str, required for bulk load mode
+        HDFS/local path where HFiles will be generated
 
 
     """
@@ -663,11 +788,15 @@ def push_to_hbase(
         df.schema, table_name, rowkeyname=rowkeyname, cf=cf
     )
 
-    push_to_hbase_partial(hbcatalog_index, nregion)(df, None)
+    if bulk_loading:
+        push_to_hbase_bulk_load(sc,df,table_name,hbcatalog_index,output_path)
+    else:
+        push_to_hbase_partial(hbcatalog_index, nregion)(df, None)
+
     return None
 
 
-def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loading=False):
+def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loading=False, sc=None, output_path=None ):
     """Push data stored in a Spark DataFrame into HBase
 
     It assumes the main ZTF table schema
@@ -686,6 +815,10 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         Name for the JSON catalog (saved locally for inspection)
     bulk_loading: bool
         If True, ingest data using bulkLoading strategy.Default is False (classic load).
+    sc : SparkSession, optional
+        current spark session
+    output_path : str, required for bulk load mode
+        HDFS/local path where HFiles will be generated
     """
     # Cast feature columns
     df_casted = cast_features(df)
@@ -714,5 +847,7 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         table_name=table_name,
         rowkeyname=row_key_name,
         cf=cf,
-        bulk_loading=bulk_loading
+        bulk_loading=bulk_loading,
+        sc=sc,
+        output_path=output_path
     )
