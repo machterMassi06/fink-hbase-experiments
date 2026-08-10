@@ -52,15 +52,26 @@ inside `spark-master` container, run the following command :
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py \
     hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
-    classic_load \
+    classic \
     ztf_main_table \
     ztf_main_table_catalog
 ```
 
+## RUN BULK LOADING
+
+>> see todo section (fix rowkey uniqueness)
+
+```bash 
+/workspace/run_spark.sh /workspace/experiments/archive_science.py\
+    hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/day=06/ \
+    bulk_load \
+    ztf_main_table \
+    ztf_main_table_catalog \
+    --output-path hdfs://hadoop-hbase-cluster:9000/hfiles_tmp
+``` 
 ---
 
 ## TODO
 
-* Implement the bulk loading script (see `hbase_mapreduce_project` my repo git).
-* Compare the bulk loading approach with the classic loading method.
+* By definition, ThinBulkLoad does not accept two records with the same row key; it requires a unique row key for every record. we need to find a solution for this (for example, by defining a unique row key instead of "objectId_jd," which is not unique).
 * probably take a large dataset from fink (> 2G)
