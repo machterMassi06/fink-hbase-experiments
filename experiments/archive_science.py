@@ -1,6 +1,9 @@
 import argparse
+
 from fink_broker_utils.spark_utils import init_sparksession, load_parquet_files
 from fink_broker_utils.hbase_utils import push_full_df_to_hbase
+
+
 
 def getargs():
     parser = argparse.ArgumentParser(
@@ -9,32 +12,52 @@ def getargs():
 
     parser.add_argument(
         "folder",
-        help="Path to parquet files"
+        help="Path to parquet files",
     )
 
     parser.add_argument(
         "type",
-        help="Load strategy (bulk_loading, classic)"
+        choices=["bulk_load", "classic"],
+        help="Load strategy",
     )
 
     parser.add_argument(
         "science_db_name",
-        help="HBase table name"
+        help="HBase table name",
     )
 
     parser.add_argument(
         "science_db_catalogs",
-        help="HBase catalog name"
+        help="HBase catalog name",
     )
 
-    return parser.parse_args()
+    parser.add_argument(
+        "--output-path",
+        help="HDFS/local path where HFiles will be generated. "
+             "Required when using bulk_load.",
+    )
+
+    args = parser.parse_args()
+
+    # output_path is mandatory for bulk loading
+    if args.type == "bulk_load" and not args.output_path:
+        parser.error(
+            "--output-path is required when type is 'bulk_load'"
+        )
+
+    if args.type == "classic": 
+        args.output_path = None
+
+    return args
+
 
 def main():
     args = getargs()
 
     # Initialise Spark session
     spark = init_sparksession(
-        name="science_archival_{}".format(args.type), shuffle_partitions=2
+        name="science_archival_{}".format(args.type),
+        shuffle_partitions=2,
     )
 
     # Row key
@@ -49,17 +72,22 @@ def main():
     df = df.drop("year").drop("month").drop("day")
 
     # Drop images
-    df = df.drop("cutoutScience").drop("cutoutTemplate").drop("cutoutDifference")
+    df = (
+        df.drop("cutoutScience")
+        .drop("cutoutTemplate")
+        .drop("cutoutDifference")
+    )
 
-    # push data to HBase
-    push_full_df_to_hbase(
+    # Push data to HBase
+    push_full_df_to_hbase( 
         df,
         row_key_name=row_key_name,
         table_name=args.science_db_name,
         catalog_name=args.science_db_catalogs,
-        bulk_loading=False
+        bulk_loading=False,
+        sc=spark.SparkContext,
+        output_path=args.output_path
     )
-
     print("{} alerts pushed to HBase".format(n_alerts))
 
 
