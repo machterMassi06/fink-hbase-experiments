@@ -61,7 +61,7 @@ def main():
     )
 
     # Row key
-    row_key_name = "objectId_jd"
+    row_key_name = "objectId_jd_candid"
 
     print("Processing {}".format(args.folder))
 
