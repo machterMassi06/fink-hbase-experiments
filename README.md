@@ -73,5 +73,5 @@ inside `spark-master` container, run the following command :
 
 ## TODO
 
-* By definition, ThinBulkLoad does not accept two records with the same row key; it requires a unique row key for every record. we need to find a solution for this (for example, by defining a unique row key instead of "objectId_jd," which is not unique).
+* By definition, ThinBulkLoad does not accept two records with the same row key; it requires a unique row key for every record. we need to find a solution for this (for example, by defining a unique row key instead of "objectId_jd," which is not unique) -> FIXED 
 * probably take a large dataset from fink (> 2G)
