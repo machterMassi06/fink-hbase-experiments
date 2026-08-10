@@ -34,6 +34,8 @@ public class ThinBulkLoadWrapper {
 
             Map<String, Map<String,String>> columns,
 
+            String rowkeyColumn,
+
             String tableName,
 
             String stagingDir,
@@ -65,7 +67,7 @@ public class ThinBulkLoadWrapper {
 
 
             String rowkey =
-                row.getAs("key").toString();
+                row.getAs(rowkeyColumn).toString();
 
 
 
@@ -88,7 +90,7 @@ public class ThinBulkLoadWrapper {
 
 
 
-                if (columnName.equals("key")) {
+                if (columnName.equals(rowkeyColumn)) {
                     continue;
                 }
 
