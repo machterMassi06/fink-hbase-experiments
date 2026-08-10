@@ -1,6 +1,8 @@
 import os
 import logging
 import numpy as np
+import json
+
 
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame
@@ -629,37 +631,68 @@ def push_to_hbase_partial(hbase_catalog, newtable):
 
     return inwrap
 
-def convert_catalog_for_java(hbase_catalog):
 
-    # Convert catalog Python dict to Java Map
+
+def convert_catalog_for_java(hbase_catalog, jvm):
+    """
+    Convert an HBase catalog from a JSON string to a Java HashMap.
+    Args:
+        hbase_catalog (str): HBase catalog serialized as a JSON string.
+        jvm: Py4J JVM gateway associated with the Spark context.
+
+    Returns:
+        java.util.HashMap: Java map containing the HBase column definitions,
+        including the rowkey definition.
+
+        rowkey : rowKey representation for java
+    """
+    try:
+        catalog = json.loads(hbase_catalog)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            "Invalid HBase catalog: expected a valid JSON string."
+        ) from exc
+
+    if "columns" not in catalog:
+        raise ValueError(
+            "Invalid HBase catalog: missing 'columns' field."
+        )
+
+    if "rowkey" not in catalog:
+        raise ValueError(
+            "Invalid HBase catalog: missing 'rowkey' field."
+        )
+
+    columns = catalog["columns"]
+    rowkey = catalog["rowkey"]
+
+    if not isinstance(rowkey, str) or not rowkey:
+        raise ValueError(
+            "Invalid HBase catalog: 'rowkey' must be a non-empty string."
+        )
+
+    # The rowkey must be present in the column definitions.
+    if rowkey not in columns:
+        columns[rowkey] = {
+            "cf": "rowkey",
+            "col": rowkey,
+            "type": "string",
+        }
 
     java_columns = jvm.java.util.HashMap()
 
-
     for col_name, meta in columns.items():
+        if col_name =="annotation" : continue 
 
         java_meta = jvm.java.util.HashMap()
 
-        java_meta.put(
-            "cf",
-            meta["cf"]
-        )
+        java_meta.put("cf", meta["cf"])
+        java_meta.put("col", meta["col"])
+        java_meta.put("type", meta.get("type", "string"))
 
-        java_meta.put(
-            "col",
-            meta["col"]
-        )
+        java_columns.put(col_name, java_meta)
 
-        java_meta.put(
-            "type",
-            meta.get("type", "string")
-        )
-
-        java_columns.put(
-            col_name,
-            java_meta
-        )
-
+    return java_columns, rowkey
 def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
     """
     Perform a bulk load of Spark DataFrame data into HBase.
@@ -692,16 +725,14 @@ def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
     # df = df.orderBy("key")
     # OR  2- Using repartition(n, "key") to control parallelism and HFile generation
     # df = df.repartition(n_partitions, "key")
-    print(hbase_catalog)
     
-    java_columns = convert_catalog_for_java(hbase_catalog)
+    java_columns, row_key = convert_catalog_for_java(hbase_catalog,jvm)
 
     # Initialize HBase context
     hbase_conf = sc._jsc.hadoopConfiguration()
     hbase_context = jvm.org.apache.hadoop.hbase.spark.HBaseContext(sc._jsc.sc(), hbase_conf, None)
-
+    
     # Call my Java wrapper
-
     wrapper = (
         jvm.hbase.ThinBulkLoadWrapper
     )
@@ -710,6 +741,7 @@ def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
         hbase_context,
         df._jdf,
         java_columns,
+        row_key,
         table_name,
 
         # Temporary directory where HFiles will be generated (staging area before loading into HBase)
