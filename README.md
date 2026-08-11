@@ -57,6 +57,12 @@ Output :
 3.9 G  3.9 G  /archive/science/year=2026/month=08
 ``` 
 
+inside `spark-master` container, to build the Java hbase (BulkLoad wrapper) project and generate the JAR file, run:
+
+```bash 
+sudo docker exec -it spark-master bash  # first enter spark-master container
+cd /workspace/hbase/ && mvn clean package 
+``` 
 --- 
 ## RUN CLASSIC LOAD WITH 
 
