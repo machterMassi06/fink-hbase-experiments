@@ -693,7 +693,7 @@ def convert_catalog_for_java(hbase_catalog, jvm):
         java_columns.put(col_name, java_meta)
 
     return java_columns, rowkey
-def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
+def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path,n):
     """
     Perform a bulk load of Spark DataFrame data into HBase.
 
@@ -709,6 +709,7 @@ def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
         hbase_catalog (str): HBase catalog configuration as a string.
         output_path (str): HDFS or local path where the generated HFiles
             will be stored.
+        n (int) : (Optional) number of DataFrame partitions to consider
 
     Returns:
         None
@@ -722,11 +723,15 @@ def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path):
     # HFiles must be sorted by rowkey
     # ThinBulkLoad handles the required sorting internally
     # 1 - Avoid global orderBy() as it triggers an expensive shuffle
-    # df = df.orderBy("key")
+    #df = df.orderBy("key")
     # OR  2- Using repartition(n, "key") to control parallelism and HFile generation
     # df = df.repartition(n_partitions, "key")
     
     java_columns, row_key = convert_catalog_for_java(hbase_catalog,jvm)
+    
+    if n :
+        # considere partitioning  
+        df = df.repartition(n,row_key)
 
     # Initialize HBase context
     hbase_conf = sc._jsc.hadoopConfiguration()
@@ -789,7 +794,8 @@ def push_to_hbase(
     nregion=50,
     bulk_loading=False,
     sc=None,
-    output_path=None
+    output_path=None,
+    n=None
 ):
     """Push DataFrame data to HBase
 
@@ -811,6 +817,7 @@ def push_to_hbase(
         current spark session
     output_path : str, required for bulk load mode
         HDFS/local path where HFiles will be generated
+    n : int, (Optional) number of DataFrame partitions to consider
 
 
     """
@@ -821,14 +828,14 @@ def push_to_hbase(
     )
 
     if bulk_loading:
-        push_to_hbase_bulk_load(sc,df,table_name,hbcatalog_index,output_path)
+        push_to_hbase_bulk_load(sc,df,table_name,hbcatalog_index,output_path,n)
     else:
         push_to_hbase_partial(hbcatalog_index, nregion)(df, None)
 
     return None
 
 
-def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loading=False, sc=None, output_path=None ):
+def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loading=False, sc=None, output_path=None,n=None):
     """Push data stored in a Spark DataFrame into HBase
 
     It assumes the main ZTF table schema
@@ -851,6 +858,7 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         current spark session
     output_path : str, required for bulk load mode
         HDFS/local path where HFiles will be generated
+    n : int, (Optional) number of DataFrame partitions to consider
     """
     # Cast feature columns
     df_casted = cast_features(df)
@@ -881,5 +889,6 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         cf=cf,
         bulk_loading=bulk_loading,
         sc=sc,
-        output_path=output_path
+        output_path=output_path,
+        n=n
     )
