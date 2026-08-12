@@ -37,6 +37,12 @@ def getargs():
              "Required when using bulk_load.",
     )
 
+    parser.add_argument(
+        "--n-partitions",
+        help="number of data partitions. "
+             "useful for bulk_load (optional).",
+    )
+
     args = parser.parse_args()
 
     # output_path is mandatory for bulk loading
@@ -56,7 +62,7 @@ def main():
 
     # Initialise Spark session
     spark = init_sparksession(
-        name="science_archival_{}".format(args.type),
+        name="science_archival_{}_{}_partitions".format(args.type,args.n_partitions),
         shuffle_partitions=2,
     )
 
@@ -87,7 +93,8 @@ def main():
         catalog_name=args.science_db_catalogs,
         bulk_loading=(args.type == "bulk_load"),
         sc=spark.sparkContext,
-        output_path=args.output_path
+        output_path=args.output_path,
+        n=(int(args.n_partitions) if args.n_partitions else None) ,
     )
 
     
