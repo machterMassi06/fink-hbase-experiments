@@ -31,11 +31,12 @@ services:
       HOME: /tmp
     volumes:
       - .:/workspace
-  spark-worker:
+      - spark-master-tmp:/tmp
+  spark-worker1:
     build:
       context: . 
       dockerfile: Dockerfile.spark
-    container_name: spark-worker
+    container_name: spark-worker1
     command: >
       /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
       spark://spark-master:7077
@@ -45,6 +46,25 @@ services:
       HOME: /tmp
     volumes:
       - .:/workspace
+      - spark-worker1-tmp:/tmp
+    depends_on:
+      - spark-master
+
+  spark-worker2:
+    build:
+      context: . 
+      dockerfile: Dockerfile.spark
+    container_name: spark-worker2
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    ports:
+      - "8082:8081"
+    environment:
+      HOME: /tmp
+    volumes:
+      - .:/workspace
+      - spark-worker2-tmp:/tmp
     depends_on:
       - spark-master
 
@@ -77,3 +97,6 @@ volumes:
   prometheus-data:
   grafana-data:
   hadoop-data:
+  spark-master-tmp:
+  spark-worker1-tmp:
+  spark-worker2-tmp:
