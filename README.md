@@ -67,7 +67,9 @@ cd /workspace/hbase/ && mvn clean package
 --- 
 ## RUN CLASSIC LOAD WITH 
 
-inside `spark-master` container, run the following command : 
+inside `spark-master` container, run the following command  : 
+
+- if you want to test the salted table replace `ztf_main_table` by `ztf_main_table_salted` 
 
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py \
@@ -78,6 +80,8 @@ inside `spark-master` container, run the following command :
 ```
 
 ## RUN BULK LOADING
+
+- if you want to test the salted table replace `ztf_main_table` by `ztf_main_table_salted`
 
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py\
