@@ -446,6 +446,23 @@ def add_row_key(df, row_key_name, cols=None):
     df = df.withColumn(row_key_name, row_key_col)
 
     return df
+
+def add_salted_row_key(df, row_key_name, cols, num_salts=50):
+    original_rowkey = F.concat_ws("_", *cols)
+
+    salt = F.pmod(
+        F.xxhash64(original_rowkey),
+        F.lit(num_salts)
+    )
+
+    salted_rowkey = F.concat(
+        F.lpad(salt.cast("string"), 2, "0"),
+        F.lit("_"),
+        original_rowkey
+    )
+
+    return df.withColumn(row_key_name, salted_rowkey)
+
 def select_relevant_columns(
     df: DataFrame, cols: list, row_key_name: str, to_create=None
 ) -> DataFrame:
@@ -871,10 +888,13 @@ def push_full_df_to_hbase(df, row_key_name, table_name, catalog_name, bulk_loadi
         df_casted, root_level, candidates, fink_cols, fink_nested_cols
     )
 
-    df_flat = add_row_key(
-        df_flat, row_key_name=row_key_name, cols=row_key_name.split("_")
+    #df_flat = add_row_key(
+    #    df_flat, row_key_name=row_key_name, cols=row_key_name.split("_")
+    #)
+    
+    df_flat = add_salted_row_key(
+        df_flat, row_key_name=row_key_name, cols=row_key_name.split("_"), num_salts=50
     )
-
     # Flatten columns
     df_flat = select_relevant_columns(
         df_flat,
