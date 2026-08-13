@@ -24,8 +24,8 @@ echo "Launching Spark job..."
 
 $SPARK_HOME/bin/spark-submit \
   --master spark://spark-master:7077 \
-  --executor-memory 1G \
-  --executor-cores 1 \
+  --executor-memory 2G \
+  --executor-cores 2 \
   --jars "$PROJECT_JARS" \
   --packages "org.apache.hbase:hbase-shaded-mapreduce:2.5.8,\
 org.slf4j:slf4j-log4j12:1.7.36,\
