@@ -801,12 +801,15 @@ def push_to_hbase_bulk_load(sc, df, table_name, hbase_catalog, output_path,n):
 
     load = jvm.org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles(hbase_conf)
 
+    # todo: wrap doBulkLoad() in a try/except block and delete the generated HFiles (output_path)
+    # only if the bulk load completes successfully.
     load.doBulkLoad(
         jvm.org.apache.hadoop.fs.Path(output_path),
         admin,
         table,
         region_locator
     )
+
 
 def push_to_hbase(
     df,
