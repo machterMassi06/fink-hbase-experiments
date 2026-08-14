@@ -615,7 +615,7 @@ def construct_hbase_catalog_from_flatten_schema(
 
     return catalog.replace("'", '"')
 
-def push_to_hbase_partial(hbase_catalog, newtable):
+def push_to_hbase_partial(hbase_catalog, newtable,rowkey, n ):
     """Wrapper around Hbase ingestion
 
     Parameters
@@ -641,7 +641,12 @@ def push_to_hbase_partial(hbase_catalog, newtable):
             Static Spark DataFrame
         batch_id: int
             ID of the batch (used only for streaming)
+        n  : int 
+            (Optional) number of DataFrame partitions to consider
         """
+        if n : 
+            batch_df = batch_df.repartition(n,rowkey)
+            
         batch_df.write.options(catalog=hbase_catalog, newtable=newtable).format(
             "org.apache.hadoop.hbase.spark"
         ).option("hbase.spark.use.hbasecontext", False).save()
@@ -847,7 +852,7 @@ def push_to_hbase(
     if bulk_loading:
         push_to_hbase_bulk_load(sc,df,table_name,hbcatalog_index,output_path,n)
     else:
-        push_to_hbase_partial(hbcatalog_index, nregion)(df, None)
+        push_to_hbase_partial(hbcatalog_index, nregion, rowkeyname, n)(df, None)
 
     return None
 
