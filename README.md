@@ -54,8 +54,27 @@ hdfs dfs -du -h /archive/science/year=2026/
 Output : 
 
 ```text
-3.9 G  3.9 G  /archive/science/year=2026/month=08
+20.9 G  20.9 G  /archive/science/year=2026/month=08
 ``` 
+```text
+$ hdfs dfs -du -h /archive/science/year=2026/month=08
+
+7.0 G  7.0 G  /archive/science/year=2026/month=08/day=02
+5.4 G  5.4 G  /archive/science/year=2026/month=08/day=03
+1.7 G  1.7 G  /archive/science/year=2026/month=08/day=04
+2.9 G  2.9 G  /archive/science/year=2026/month=08/day=05
+1.6 G  1.6 G  /archive/science/year=2026/month=08/day=06
+2.3 G  2.3 G  /archive/science/year=2026/month=08/day=08
+
+``` 
+
+- After this, run this script (to create the salted table with 50 predefined salts): 
+
+```bash
+/workspace/create_ztf_table_salted.sh
+```
+
+
 ### Generate the jar (for hbase/ java project)
 
 inside `spark-master` container, to build the Java hbase (BulkLoad wrapper) project and generate the JAR file, run:
@@ -69,27 +88,29 @@ cd /workspace/hbase/ && mvn clean package
 
 inside `spark-master` container, run the following command  : 
 
-- if you want to test the salted table replace `ztf_main_table` by `ztf_main_table_salted` 
+- if you want to test the no-salted table replace `ztf_main_table_salted` by `ztf_main_table` 
 
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py \
     hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/ \
     classic \
-    ztf_main_table \
-    ztf_main_table_catalog
+    ztf_main_table_salted \
+    ztf_main_table_catalog \
+    --n-partitions 50 
 ```
 
 ## RUN BULK LOADING
 
-- if you want to test the salted table replace `ztf_main_table` by `ztf_main_table_salted`
+- if you want to test the no-salted table replace `ztf_main_table_salted` by `ztf_main_table` 
 
 ```bash 
 /workspace/run_spark.sh /workspace/experiments/archive_science.py\
     hdfs://hadoop-hbase-cluster:9000/archive/science/year=2026/month=08/ \
     bulk_load \
-    ztf_main_table \
+    ztf_main_table_salted \
     ztf_main_table_catalog \
-    --output-path hdfs://hadoop-hbase-cluster:9000/hfiles_tmp
+    --output-path hdfs://hadoop-hbase-cluster:9000/hfiles_tmp \
+    --n-partitions 50 
 ``` 
 ---
 
