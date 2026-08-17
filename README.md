@@ -45,7 +45,7 @@ Upload the dataset to HDFS:
 hdfs dfs -put /root/ztf_data_test/* /archive/science/year=2026/month=08/
 ```
 
-Verify that ~ 4G of data that loaded with sucess in hdfs : 
+Verify that ~ 20G of data that loaded with sucess in hdfs : 
 
 ```bash
 hdfs dfs -du -h /archive/science/year=2026/ 
